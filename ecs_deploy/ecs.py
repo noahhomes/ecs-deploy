@@ -637,6 +637,23 @@ class EcsAction(object):
                 running_count += 1
         return running_count
 
+    def wait_running_tasks(self, task_arns):
+        exit_code = 0
+        waiter = self._client.get_waiter('tasks_stopped')
+        waiter.wait(
+            cluster=self._cluster_name,
+            tasks=task_arns
+        )
+        tasks_details = self._client.describe_tasks(
+            cluster_name=self._cluster_name,
+            task_arns=task_arns
+        )
+        for task in tasks_details[u'tasks']:
+            for container in task[u'containers']:
+                if container[u'exitCode'] != 0:
+                    exit_code = container[u'exitCode']
+        return exit_code
+
     @property
     def client(self):
         return self._client
